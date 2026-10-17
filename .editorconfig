@@ -1,0 +1,17 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+# 마크다운은 줄 끝 공백 두 칸이 줄바꿈이다.
+[*.md]
+trim_trailing_whitespace = false
+
+# gofmt가 탭 들여쓰기를 강제한다.
+[{*.go,go.mod}]
+indent_style = tab
