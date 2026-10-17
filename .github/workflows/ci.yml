@@ -1,0 +1,21 @@
+name: ci
+
+on:
+    push:
+        branches: [main]
+
+# 한 세션에 커밋을 여러 번 push해도 마지막 push만 결과가 의미 있다.
+concurrency:
+    group: ci-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    test:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v7
+            - uses: actions/setup-go@v7
+              with:
+                  go-version-file: go.mod
+            - run: go build ./...
+            - run: scripts/test.sh
