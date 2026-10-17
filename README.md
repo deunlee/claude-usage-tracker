@@ -6,6 +6,8 @@ Claude Code의 `/usage`가 보여 주는 플랜 사용량(5시간·주간·모�
 - 설정 폴더(`~/.claude`, `~/.claude1` 등)로 나눠 쓰는 여러 계정을 한 대시보드에서 함께 본다.
 - 대시보드까지 들어간 실행 파일 하나로 Windows와 Linux에서 돈다.
 
+![대시보드 화면](docs/dashboard.png)
+
 ## 데이터 저장
 
 - 원본 응답은 `logs/YYYY-MM-DD-<이메일>.json`에 쌓는다. 쌓기만 하고 프로그램이 다시 읽지 않는다.
