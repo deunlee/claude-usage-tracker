@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex, notranslate, max-image-preview:none">
+<title>Claude Tracker</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/ibm-plex-sans-kr@5.3.0/400.css" integrity="sha384-qLVaqLxeq6qZ/E40xWR0e+qVlNdUzJDclNn1c7c/YVr3Z54kjleakgc1mPj3zxsF" crossorigin="anonymous">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/ibm-plex-sans-kr@5.3.0/500.css" integrity="sha384-WraUJuQKYEXU5DbeITNLexdKdoa2BwPUd7tm2jlqj9nk5RX0JWBiZA8oXWOLkl2Z" crossorigin="anonymous">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/ibm-plex-sans-kr@5.3.0/600.css" integrity="sha384-v5pkM92zPDiVnHle/1KSWhkRf+GrjLp2VO5HbJNA9Wq0kCCIjbRDk+1EhX6FznC8" crossorigin="anonymous">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/ibm-plex-sans-kr@5.3.0/700.css" integrity="sha384-+YiOm3slC363GgffsJofnIhVIGBm3aJTyqTHhhFEfe6OEa8o8UNjaqwe/LdEU9MU" crossorigin="anonymous">
+<link rel="stylesheet" href="/style.css">
+<script src="https://cdn.jsdelivr.net/npm/echarts@6.1.0/dist/echarts.min.js" integrity="sha384-C2iskrW/uPW46KzOjrvJIQo4YkV8lkD+QS0CrDN18IIPIpT/g2USu8bTP3nvmIAD" crossorigin="anonymous" defer></script>
+<script src="/clawd.js" defer></script>
+<script src="/login.js" defer></script>
+<script src="/app.js" defer></script>
+</head>
+<!-- 로그인을 확인하기 전에는 빈 화면을 보여, 로그인 창으로 넘어가기 전에 대시보드 틀이 잠깐 비치지 않게 한다. -->
+<body hidden>
+<div class="page">
+    <header class="masthead">
+        <a class="clawd-link" href="/clawd">
+            <svg class="clawd" id="clawd" viewBox="0 0 18 12" shape-rendering="crispEdges">
+                <title id="clawd-title">Clawd</title>
+                <g id="clawd-sprite"></g>
+            </svg>
+        </a>
+        <div class="title">
+            <h1>Claude 사용량 대시보드</h1>
+            <p class="sub" id="sub">불러오는 중…</p>
+        </div>
+        <div class="actions">
+            <select class="ghost" id="account" hidden></select>
+            <button type="button" class="ghost on" id="auto-refresh">자동 새로고침: 켜짐</button>
+            <button type="button" class="icon-button" id="refresh-now" title="모든 계정 지금 수집 (마지막 수집 2분 뒤부터)"><span class="refresh-icon"></span></button>
+        </div>
+    </header>
+
+    <p class="error" id="error" hidden><span class="icon">!</span><span id="error-text"></span></p>
+
+    <div class="overview">
+        <section class="panel readout" id="meters"></section>
+        <!-- 기간 필터와 상관없이 늘 최근 3개월(internal/store/activity.go의 activityMonths)을 보여 준다. -->
+        <section class="panel activity">
+            <h2>최근 3개월 사용량</h2>
+            <div class="activity-calendar" id="activity"></div>
+        </section>
+    </div>
+
+    <main id="content">
+        <section class="panel">
+            <div class="panel-head chart-head">
+                <h2>사용량 그래프</h2>
+                <!-- 기간 키는 internal/store/archive_index.go의 ranges와 맞춘다. -->
+                <nav class="filters" id="filters">
+                    <button type="button" data-range="1h">1시간</button>
+                    <button type="button" data-range="3h">3시간</button>
+                    <button type="button" data-range="6h">6시간</button>
+                    <button type="button" data-range="12h" class="on">12시간</button>
+                    <button type="button" data-range="1d">1일</button>
+                    <button type="button" data-range="2d">2일</button>
+                    <button type="button" data-range="3d">3일</button>
+                    <button type="button" data-range="5d">5일</button>
+                    <button type="button" data-range="7d">7일</button>
+                    <button type="button" data-range="14d">14일</button>
+                </nav>
+            </div>
+            <div class="chart-wrap">
+                <div class="chart" id="chart"></div>
+                <div class="chart-empty" id="chart-empty" hidden>이 기간에 수집된 데이터가 없습니다</div>
+            </div>
+        </section>
+
+        <div class="row2">
+            <section class="panel">
+                <h2>최근 7일 사용처</h2>
+                <div id="breakdown"></div>
+            </section>
+            <section class="panel">
+                <h2>수집 상태</h2>
+                <dl class="status">
+                    <div><dt>마지막 성공</dt><dd id="st-success">—</dd></div>
+                    <div><dt>마지막 시도</dt><dd id="st-attempt">—</dd></div>
+                    <div><dt>다음 수집</dt><dd id="st-next">—</dd></div>
+                    <div id="st-paused-row" hidden><dt>요청 보류</dt><dd id="st-paused"></dd></div>
+                    <div><dt>수집 주기</dt><dd id="st-interval">—</dd></div>
+                    <div><dt>마지막 변화</dt><dd id="st-change">—</dd></div>
+                    <div><dt>액세스 토큰 만료</dt><dd id="st-token">—</dd></div>
+                    <div><dt>리프레시 토큰 만료</dt><dd id="st-refresh-token">—</dd></div>
+                    <div id="st-scopes-row" hidden><dt>누락된 scope</dt><dd id="st-scopes"></dd></div>
+                </dl>
+            </section>
+        </div>
+
+        <section class="panel">
+            <h2>동작 방식</h2>
+            <!-- 숫자와 명령은 internal/poller/poll_schedule.go의 scheduleSteps, internal/poller/poller.go의 preResetSample·limitReachedInterval·refreshRetry,
+                 internal/claude/client.go의 MaxWait, internal/claude/token_refresh.go의 RefreshCommand와 맞춘다. -->
+            <dl class="rules">
+                <dt>수집 주기</dt>
+                <dd>2분마다 확인합니다. 3회 연속 변화가 없으면 5분, 이어서 6회 연속 변화가 없으면 10분 간격으로 늘립니다. 5시간·주간 사용률이 바뀌면 바로 2분으로 돌아갑니다.</dd>
+                <dt>지금 수집</dt>
+                <dd>위쪽 새로고침 버튼을 누르면 모든 계정을 마지막 수집 2분 뒤에 바로 수집하고, 5분·10분 주기였다면 2분으로 되돌립니다. 한도에 닿아 30분 주기일 때는 그 한 번만 앞당깁니다. 요청 보류(429) 중에는 보류가 끝난 뒤에 수집합니다.</dd>
+                <dt>초기화 전후</dt>
+                <dd>5시간·주간 창이 초기화되기 2분 전과 직후에 한 번씩 더 기록합니다. 그래서 그래프가 초기화 시각에 바로 떨어집니다. 초기화 2분 전 기록부터 수집 주기를 2분으로 되돌립니다.</dd>
+                <dt>한도 도달</dt>
+                <dd>5시간 또는 주간(모든 모델) 한도가 100%면 초기화될 때까지 값이 움직이지 않으므로 30분마다 수집합니다. 초기화 전후 기록은 그대로 남깁니다. Fable 같은 모델별 주간 한도는 100%가 돼도 주기를 바꾸지 않습니다.</dd>
+                <dt>토큰 만료</dt>
+                <dd>
+                    아래 명령으로 Claude Code를 한 번 실행해 토큰을 갱신합니다.
+                    <code class="cmd">claude -p hello --model haiku --no-session-persistence --setting-sources user --strict-mcp-config</code>
+                    세션 기록은 남기지 않지만 사용량은 조금 씁니다. 실패하면 10분 뒤 다시 시도합니다.
+                </dd>
+                <dt>요청 제한 (429)</dt>
+                <dd>응답이 알려 준 시간만큼 기다린 뒤 다시 요청합니다. 최대 1시간까지 기다립니다.</dd>
+                <dt>여러 계정</dt>
+                <dd>~/.claude와 config.json의 extraClaudeConfigDirs에 적은 디렉터리를 계정마다 따로 수집합니다. 위의 주기·보류·토큰 갱신도 계정마다 따로 돌고, 그래프에 쓰는 기록은 archive/&lt;이메일&gt;/에, 받은 응답 전체는 logs/에 쌓입니다.</dd>
+                <dt>다시 시작</dt>
+                <dd>꺼져 있는 동안 5시간·주간·모델별 주간(Fable 등) 창이 초기화됐으면, 마지막으로 받은 응답의 초기화 시각 1초 전에는 마지막 값을, 초기화 시각에는 0%를 그래프에 기록해 그 시각에 바로 떨어지게 하고 수집을 시작합니다.</dd>
+            </dl>
+        </section>
+    </main>
+
+    <footer class="page-foot">
+        <button type="button" class="ghost" id="logout">로그아웃</button>
+    </footer>
+</div>
+<div class="tip" id="tip" hidden></div>
+</body>
+</html>
