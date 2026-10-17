@@ -19,3 +19,18 @@
 ## 버전
 
 이 프로그램의 버전은 흉내 내는 Claude Code의 버전, 곧 `internal/claude/client.go`의 `CodeVersion`을 그대로 쓴다. 따로 번호를 매기면 어느 Claude Code를 흉내 내는 빌드인지 알 수 없다. `CodeVersion`을 올리면 릴리스 태그도 같은 번호(`v2.1.302`)로 단다.
+
+## 리눅스에서 서비스로 실행
+
+`claude-usage-tracker.service`는 systemd 시스템 서비스다. 로그인하지 않아도 부팅 때 시작한다. 수집할 `~/.claude`의 주인인 `ubuntu` 사용자로 돌고 실행 파일이 `/home/ubuntu/claude-usage-tracker/`에 있다고 보고 적었으니, 다르면 unit의 `User`, `ExecStart`, `PATH`를 고친다.
+
+```bash
+install -Dm755 bin/cut-linux-arm64 ~/claude-usage-tracker/cut-linux-arm64
+sudo install -m644 claude-usage-tracker.service /etc/systemd/system/claude-usage-tracker.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now claude-usage-tracker
+```
+
+- 처음 시작하면 실행 파일 옆에 `config.json`이 생기므로 서비스 사용자가 그 폴더에 쓸 수 있어야 한다. 설정을 고쳤으면 `sudo systemctl restart claude-usage-tracker`.
+- 토큰 갱신은 `PATH`에서 `claude`를 찾는다. unit은 `~/.local/bin`, `/usr/local/bin`, `/usr/bin`, `/bin`만 넣으므로 claude가 다른 곳에 있으면 `command -v claude`가 가리키는 폴더를 더한다.
+- 로그는 `logs/` 또는 `journalctl -u claude-usage-tracker`로 본다.
