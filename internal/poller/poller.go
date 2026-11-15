@@ -68,6 +68,8 @@ type Status struct {
 	Token      *claude.CredentialStatus `json:"token"`
 	UserAgent  string                   `json:"userAgent"`
 	Email      *string                  `json:"email"`
+	// 계정 정보 파일에 적힌 플랜 이름. 없으면 대시보드가 token의 subscriptionType·rateLimitTier로 이름을 만든다.
+	PlanDisplayName *string `json:"planDisplayName"`
 }
 
 type Poller struct {
@@ -94,6 +96,7 @@ type Poller struct {
 	token                 *claude.CredentialStatus
 	latest                *LatestSnapshot
 	email                 string
+	planDisplayName       string
 	emailTokenFingerprint string
 	// recent.json에서 마지막 응답을 되살려 본 계정. 계정마다 한 번만 읽는다.
 	restoredEmail string
@@ -148,17 +151,18 @@ func (p *Poller) Status() Status {
 	defer p.mu.Unlock()
 	now := time.Now()
 	status := Status{
-		StartedAt:     p.startedAt,
-		LastAttemptAt: util.Optional(p.lastAttemptAt),
-		LastSuccessAt: util.Optional(p.lastSuccessAt),
-		LastOutcome:   util.Optional(p.lastOutcome),
-		NextPollAt:    util.Optional(p.nextPollAt),
-		Schedule:      p.schedule.status(),
-		LimitReached:  p.limitReached(now),
-		IntervalMs:    p.interval(now).Milliseconds(),
-		Token:         p.token,
-		UserAgent:     p.client.UserAgent,
-		Email:         util.Optional(p.email),
+		StartedAt:       p.startedAt,
+		LastAttemptAt:   util.Optional(p.lastAttemptAt),
+		LastSuccessAt:   util.Optional(p.lastSuccessAt),
+		LastOutcome:     util.Optional(p.lastOutcome),
+		NextPollAt:      util.Optional(p.nextPollAt),
+		Schedule:        p.schedule.status(),
+		LimitReached:    p.limitReached(now),
+		IntervalMs:      p.interval(now).Milliseconds(),
+		Token:           p.token,
+		UserAgent:       p.client.UserAgent,
+		Email:           util.Optional(p.email),
+		PlanDisplayName: util.Optional(p.planDisplayName),
 	}
 	if p.pause != nil {
 		status.PausedUntil = util.Optional(util.ISOString(p.pause.until))
@@ -350,7 +354,7 @@ func (p *Poller) restoreLatest(email string) {
 }
 
 func (p *Poller) readEmail(credentials *claude.Credentials) (string, bool) {
-	email, err := p.configDir.Email()
+	account, err := p.configDir.Account()
 	if err != nil {
 		// Claude Code가 계정 정보 파일을 자주 고쳐 써서, 쓰는 도중에 읽으면 JSON이 깨져 보일 수 있다.
 		// 다른 계정으로 로그인하면 토큰도 바뀌므로, 토큰이 그대로면 직전에 읽은 계정으로 본다.
@@ -360,6 +364,7 @@ func (p *Poller) readEmail(credentials *claude.Credentials) (string, bool) {
 		p.skip("계정 정보를 읽지 못했습니다: " + err.Error())
 		return "", false
 	}
+	email := account.Email
 	switched := p.email != "" && p.email != email
 	if switched {
 		p.logf("이 디렉터리의 계정이 %s(으)로 바뀌었습니다", email)
@@ -368,7 +373,7 @@ func (p *Poller) readEmail(credentials *claude.Credentials) (string, bool) {
 	if switched {
 		p.latest = nil
 	}
-	p.email, p.emailTokenFingerprint = email, credentials.Fingerprint
+	p.email, p.planDisplayName, p.emailTokenFingerprint = email, account.PlanDisplayName, credentials.Fingerprint
 	p.mu.Unlock()
 	return email, true
 }

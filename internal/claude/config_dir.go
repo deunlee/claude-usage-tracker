@@ -71,22 +71,35 @@ func fileExists(path string) bool {
 	return err == nil && !info.IsDir()
 }
 
-func (c *ConfigDir) Email() (string, error) {
+type Account struct {
+	Email string
+	// 플랜 이름(Ultra 등)은 서버가 프로필로 정해 주고, Claude Code도 크리덴셜의 subscriptionType·rateLimitTier보다 이 이름을 먼저 보여 준다.
+	// Claude Code가 프로필을 아직 받지 않았거나 이 필드를 적지 않던 버전이면 비어 있다.
+	PlanDisplayName string
+}
+
+func (c *ConfigDir) Account() (Account, error) {
 	text, err := util.ReadFile(c.AccountFile)
 	if err != nil {
-		return "", err
+		return Account{}, err
 	}
 	var content any
 	if err := json.Unmarshal(text, &content); err != nil {
-		return "", fmt.Errorf("%s: %w", c.AccountFile, err)
+		return Account{}, fmt.Errorf("%s: %w", c.AccountFile, err)
 	}
 	root, _ := content.(map[string]any)
-	account, _ := root["oauthAccount"].(map[string]any)
-	email, _ := account["emailAddress"].(string)
+	oauthAccount, _ := root["oauthAccount"].(map[string]any)
+	email, _ := oauthAccount["emailAddress"].(string)
 	if email == "" {
-		return "", fmt.Errorf("%s에 oauthAccount.emailAddress가 없습니다", c.AccountFile)
+		return Account{}, fmt.Errorf("%s에 oauthAccount.emailAddress가 없습니다", c.AccountFile)
 	}
-	return email, nil
+	plan, _ := oauthAccount["planDisplayName"].(string)
+	return Account{Email: email, PlanDisplayName: plan}, nil
+}
+
+func (c *ConfigDir) Email() (string, error) {
+	account, err := c.Account()
+	return account.Email, err
 }
 
 // 토큰 갱신에 띄우는 claude가 서버를 띄운 셸의 설정이 아니라 이 디렉터리의 크리덴셜을 갱신하게 한다.

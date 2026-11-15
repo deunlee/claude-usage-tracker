@@ -99,7 +99,10 @@ function shortDateTime(t) {
     return `${two(d.getMonth() + 1)}/${two(d.getDate())} ${two(d.getHours())}:${two(d.getMinutes())}`;
 }
 
-function planLabel(token) {
+// 플랜 이름은 서버가 정하므로(Ultra 등) 있으면 그대로 쓰고, 없을 때만 티어 코드로 짐작한다.
+function planLabel(status) {
+    if (status.planDisplayName) return status.planDisplayName;
+    const token = status.token;
     if (!token) return null;
     const tier = /max_(\d+x)/i.exec(token.rateLimitTier || '');
     if (tier) return `Max ${tier[1]}`;

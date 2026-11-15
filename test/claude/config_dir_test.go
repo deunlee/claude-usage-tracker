@@ -48,6 +48,34 @@ func TestDiscoverConfigDirNames(t *testing.T) {
 	}
 }
 
+func TestAccountReadsEmailAndPlanDisplayName(t *testing.T) {
+	home := t.TempDir()
+	dir := ExplicitConfigDir(filepath.Join(home, ".claude1"), home)
+	if err := os.MkdirAll(dir.Dir, 0o777); err != nil {
+		t.Fatal(err)
+	}
+	write := func(content string) {
+		t.Helper()
+		if err := os.WriteFile(dir.AccountFile, []byte(content), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	write(`{"oauthAccount": {"emailAddress": "me@example.com", "seatTier": null, "planDisplayName": "Ultra"}}`)
+	if account, err := dir.Account(); err != nil || account != (Account{Email: "me@example.com", PlanDisplayName: "Ultra"}) {
+		t.Errorf("Account = %+v, %v", account, err)
+	}
+	// 프로필을 받기 전이거나 planDisplayName을 적지 않던 Claude Code가 쓴 파일.
+	write(`{"oauthAccount": {"emailAddress": "me@example.com"}}`)
+	if account, err := dir.Account(); err != nil || account != (Account{Email: "me@example.com"}) {
+		t.Errorf("Account without plan = %+v, %v", account, err)
+	}
+	write(`{"oauthAccount": {"planDisplayName": "Ultra"}}`)
+	if _, err := dir.Account(); err == nil {
+		t.Error("Account without email should fail")
+	}
+}
+
 func TestChildEnvPointsClaudeAtTheConfigDir(t *testing.T) {
 	base := []string{"PATH=/bin", "CLAUDE_CONFIG_DIR=/elsewhere", "CLAUDE_SECURESTORAGE_CONFIG_DIR=/secure"}
 	explicit := ExplicitConfigDir("/custom", "/home").ChildEnv(base)
