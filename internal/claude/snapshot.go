@@ -196,7 +196,8 @@ func isUsageBody(body any) bool {
 
 func (s *Snapshot) Readings() []Reading {
 	var limits []map[string]any
-	if list, ok := s.data["limits"].([]any); ok {
+	list, limitsListed := s.data["limits"].([]any)
+	if limitsListed {
 		for _, item := range list {
 			if limit, ok := item.(map[string]any); ok {
 				limits = append(limits, limit)
@@ -212,7 +213,7 @@ func (s *Snapshot) Readings() []Reading {
 				break
 			}
 		}
-		if r, ok := s.primaryReading(window.kind, window.field, limit); ok {
+		if r, ok := s.primaryReading(window.kind, window.field, limit, limitsListed); ok {
 			readings = append(readings, r)
 		}
 	}
@@ -331,7 +332,7 @@ func (s *Snapshot) Summary() string {
 	return strings.Join(parts, ", ")
 }
 
-func (s *Snapshot) primaryReading(kind, field string, limit map[string]any) (Reading, bool) {
+func (s *Snapshot) primaryReading(kind, field string, limit map[string]any, limitsListed bool) (Reading, bool) {
 	window, isWindow := s.data[field].(map[string]any)
 	var percent *float64
 	var resetsAt *string
@@ -343,8 +344,10 @@ func (s *Snapshot) primaryReading(kind, field string, limit map[string]any) (Rea
 		percent = util.Num(limit["percent"])
 		resetsAt = util.Str(limit["resets_at"])
 	}
-	// 필드도 limits 항목도 없으면 이 플랜에는 그 창이 없다. 필드가 null이면 창이 아직 시작되지 않은 것이다.
-	if _, present := s.data[field]; percent == nil && !present && limit == nil {
+	// 시작 전인 창도 limits에는 0%로 들어 있어서, limits에 항목이 없으면 이 플랜에 그 창이 없다(5시간 한도가 없는 Ultra 등).
+	// Claude Code의 /usage도 필드가 null이면 그 줄을 그리지 않는다.
+	// limits가 없던 응답 형식에서는 필드가 null이면 창이 아직 시작되지 않은 것이고, 필드가 없을 때만 창이 없다.
+	if _, present := s.data[field]; percent == nil && limit == nil && (limitsListed || !present) {
 		return Reading{}, false
 	}
 	var severity *string

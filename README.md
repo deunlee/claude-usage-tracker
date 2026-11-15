@@ -4,6 +4,7 @@ Claude Code의 `/usage`가 보여 주는 플랜 사용량(5시간·주간·모�
 
 - Claude Code가 `/usage`를 열 때 보내는 것과 똑같은 요청을 보낸다. 설치된 Claude Code의 로그인 정보(`.credentials.json`)를 그대로 쓰므로 API 키가 필요 없다.
 - 설정 폴더(`~/.claude`, `~/.claude1` 등)로 나눠 쓰는 여러 계정을 한 대시보드에서 함께 본다.
+- 플랜 이름은 Claude Code가 계정 정보 파일에 적어 둔 이름(Pro, Ultra 등)을 그대로 쓴다. 5시간 한도가 없는 플랜(일부 Ultra)이면 대시보드가 주간(모든 모델) 사용률을 맨 위 큰 바로 보여 준다.
 - 대시보드까지 들어간 실행 파일 하나로 Windows와 Linux에서 돈다.
 
 ![대시보드 화면](docs/dashboard.png)

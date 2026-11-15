@@ -59,21 +59,49 @@ func TestReadingsScopedLimitsReplaceLegacyFields(t *testing.T) {
 		]
 	}`)
 	readings := s.Readings()
-	if len(readings) != 3 {
+	if len(readings) != 2 {
 		t.Fatalf("readings = %s", encode(t, readings))
 	}
-	session := readings[0]
-	if session.Kind != "session" || !session.Idle || session.Percent != 0 {
-		t.Errorf("null five_hour should be an idle 0%% session: %s", encode(t, session))
-	}
-	scoped := readings[1]
+	scoped := readings[0]
 	if scoped.Key != "weekly_scoped:model=Fable 5.1" || scoped.Label != "이번 주 (Fable 5.1)" || scoped.ShortLabel != "Fable 5.1" ||
 		scoped.Field == nil || *scoped.Field != "sevenDayFable51" || scoped.Idle {
 		t.Errorf("scoped reading: %s", encode(t, scoped))
 	}
-	surface := readings[2]
+	surface := readings[1]
 	if surface.Key != "weekly_scoped:model=Fable:surface=Code" || surface.Label != "이번 주 (Fable · Code)" || surface.Field != nil {
 		t.Errorf("surface reading: %s", encode(t, surface))
+	}
+}
+
+func TestReadingsOmitFiveHourWhenPlanHasNone(t *testing.T) {
+	s := snapshotOf(t, `{
+		"five_hour": null,
+		"seven_day": {"utilization": 91.0, "resets_at": "2026-11-18T19:00:00.546430+00:00"},
+		"limits": [
+			{"kind": "weekly_all", "group": "weekly", "percent": 91, "severity": "critical", "resets_at": "2026-11-18T19:00:00.546430+00:00", "scope": null, "is_active": false},
+			{"kind": "weekly_scoped", "group": "weekly", "percent": 100, "severity": "critical", "resets_at": "2026-11-18T18:59:59.546539+00:00",
+				"scope": {"model": {"id": null, "display_name": "Fable"}, "surface": null}, "is_active": true}
+		]
+	}`)
+	got := ""
+	for _, r := range s.Readings() {
+		got += r.Key + "|"
+	}
+	if want := "weekly_all|weekly_scoped:model=Fable|"; got != want {
+		t.Errorf("keys = %s, want %s", got, want)
+	}
+	if got := s.Summary(); got != "7D: 91%, Fable: 100%" {
+		t.Errorf("summary = %q", got)
+	}
+}
+
+func TestReadingsTreatNullFiveHourAsIdleWithoutLimits(t *testing.T) {
+	readings := snapshotOf(t, `{"five_hour": null, "seven_day": {"utilization": 9, "resets_at": null}}`).Readings()
+	if len(readings) != 2 {
+		t.Fatalf("readings = %s", encode(t, readings))
+	}
+	if session := readings[0]; session.Kind != "session" || !session.Idle || session.Percent != 0 {
+		t.Errorf("null five_hour should be an idle 0%% session: %s", encode(t, session))
 	}
 }
 

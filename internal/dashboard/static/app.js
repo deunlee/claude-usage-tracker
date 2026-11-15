@@ -135,9 +135,14 @@ function currentState(reading) {
     return { idle, expired, resets, percent: idle ? 0 : reading.percent };
 }
 
+// 5시간 한도가 없는 플랜(일부 Ultra)은 응답에 session이 없어 주간(모든 모델)이 그 자리를 맡는다.
+function primaryReading(readings) {
+    return readings.find((r) => r.kind === 'session') ?? readings.find((r) => r.kind === 'weekly_all') ?? readings[0];
+}
+
 function renderClawd(payload) {
-    const session = payload.latest?.readings.find((r) => r.kind === 'session');
-    setClawdAsleep(session ? !currentState(session).idle && session.percent >= 100 : false);
+    const primary = primaryReading(payload.latest?.readings ?? []);
+    setClawdAsleep(primary ? !currentState(primary).idle && primary.percent >= 100 : false);
 }
 
 // ── 렌더링 ────────────────────────────────────────────────────────────────
@@ -148,12 +153,14 @@ function renderTitle(payload) {
         const reading = payload.latest.readings.find((r) => r.kind === kind);
         return reading ? `${Math.round(currentState(reading).percent)}%` : '–';
     };
-    document.title = payload.latest.fetchedAt ? `Claude Tracker: ${percentOf('session')} (${percentOf('weekly_all')})` : 'Claude Tracker';
+    const hasSession = payload.latest.readings.some((r) => r.kind === 'session');
+    const usage = hasSession ? `${percentOf('session')} (${percentOf('weekly_all')})` : percentOf('weekly_all');
+    document.title = payload.latest.fetchedAt ? `Claude Tracker: ${usage}` : 'Claude Tracker';
 }
 
 function renderHeader(payload) {
     const parts = [];
-    const plan = planLabel(payload.status.token);
+    const plan = planLabel(payload.status);
     if (plan) parts.push(`${plan} 플랜`);
     if (payload.latest.fetchedAt) {
         const t = Date.parse(payload.latest.fetchedAt);
@@ -198,12 +205,12 @@ function cells(percent, { count = 50, color = 'var(--text-1)' }) {
     return meter;
 }
 
-function footText(reading, state) {
+function footText(reading, state, primary) {
     if (state.expired) return '초기화됨, 다음 메시지부터 새 창이 시작됩니다';
     if (state.idle) return IDLE_NOTES[reading.kind] ?? '첫 메시지를 보내면 시작됩니다';
     if (Number.isNaN(state.resets)) return '';
     const at = `(${shortDateTime(state.resets)})`;
-    if (reading.kind === 'session') return `${relative(state.resets - Date.now())} 초기화 ${at}`;
+    if (primary) return `${relative(state.resets - Date.now())} 초기화 ${at}`;
     // 주간 칸은 좁은 사용률 칸에서 이름 옆에 놓이므로, 남은 기간과 시각만 짧게 적는다.
     return `${duration(state.resets - Date.now()) ?? '곧'} ${at}`;
 }
@@ -220,7 +227,7 @@ function readingRow(reading, className) {
         ),
         el('div', { class: 'r-value' }, String(Math.round(state.percent)), el('span', { class: 'unit' }, '%')),
         cells(state.percent, { color: severity?.color }),
-        el('div', { class: 'r-foot' }, footText(reading, state)),
+        el('div', { class: 'r-foot' }, footText(reading, state, className === 'primary')),
     );
 }
 
@@ -232,7 +239,7 @@ function renderMeters(payload) {
         root.append(el('p', { class: 'placeholder' }, '수집이 한 번 성공하면 현재 사용률이 여기에 표시됩니다.'));
         return;
     }
-    const primary = readings.find((r) => r.kind === 'session') ?? readings[0];
+    const primary = primaryReading(readings);
     const others = readings.filter((r) => r !== primary);
     root.append(readingRow(primary, 'primary'));
     if (others.length > 0) root.append(el('div', { class: 'others' }, ...others.map((r) => readingRow(r, 'reading'))));
