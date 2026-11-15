@@ -14,12 +14,15 @@ type scheduleStep struct {
 
 const BaseInterval = 2 * time.Minute
 
+// 수집 주기의 마지막 단계. 한도에 닿았을 때도 이 간격으로 묻는다.
+const slowestInterval = 10 * time.Minute
+
 // 사용량이 멈춰 있는 동안은 요청을 줄이고, 다시 움직이면 곧바로 촘촘하게 본다.
 // 1분 간격으로 보내면 너덧 번째 요청마다 429가 돌아와(2026-10-03 관측) 가장 촘촘한 주기를 2분으로 둔다.
 var scheduleSteps = []scheduleStep{
 	{interval: BaseInterval, slowDownAfter: 3},
 	{interval: 5 * time.Minute, slowDownAfter: 6},
-	{interval: 10 * time.Minute},
+	{interval: slowestInterval},
 }
 
 type scheduleChange struct {

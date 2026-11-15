@@ -145,11 +145,11 @@ func TestPollerWaitsLongerAtLimit(t *testing.T) {
 
 	attempt, _ := time.Parse(time.RFC3339, *status.LastAttemptAt)
 	next, _ := time.Parse(time.RFC3339, *status.NextPollAt)
-	if !status.LimitReached || status.IntervalMs != (30*time.Minute).Milliseconds() {
+	if !status.LimitReached || status.IntervalMs != (10*time.Minute).Milliseconds() {
 		t.Errorf("status %s", encode(t, status))
 	}
-	if gap := next.Sub(attempt); gap < 30*time.Minute-time.Second || gap > 30*time.Minute+time.Second {
-		t.Errorf("next poll %v after the last attempt, want about 30m", gap)
+	if gap := next.Sub(attempt); gap < 10*time.Minute-time.Second || gap > 10*time.Minute+time.Second {
+		t.Errorf("next poll %v after the last attempt, want about 10m", gap)
 	}
 }
 

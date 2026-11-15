@@ -25,7 +25,8 @@ const refreshRetry = 10 * time.Minute
 const preResetSample = 2 * time.Minute
 
 // 한도에 닿으면 초기화 전까지 값이 100%에 머물러 있으므로 촘촘히 물을 필요가 없다.
-const limitReachedInterval = 30 * time.Minute
+// 수집 주기의 가장 긴 단계보다 늘리지 않아, 어느 상태에서든 수집 간격이 그보다 벌어지지 않게 한다.
+const limitReachedInterval = slowestInterval
 
 // 초기화 시각은 서버 시계로 적혀 오고 타이머는 이 PC의 시계로 재므로, 딱 맞춰 깨면 시계 차이만큼 리셋 전 값을 받을 수 있다.
 const wakeSlack = time.Second
