@@ -22,11 +22,11 @@
 
 ## 리눅스에서 서비스로 실행
 
-`claude-usage-tracker.service`는 systemd 시스템 서비스다. 로그인하지 않아도 부팅 때 시작한다. 수집할 `~/.claude`의 주인인 `ubuntu` 사용자로 돌고 실행 파일이 `/home/ubuntu/claude-usage-tracker/`에 있다고 보고 적었으니, 다르면 unit의 `User`, `ExecStart`, `PATH`를 고친다.
+`deploy/claude-usage-tracker.service`는 systemd 시스템 서비스다. 로그인하지 않아도 부팅 때 시작한다. 수집할 `~/.claude`의 주인인 `ubuntu` 사용자로 돌고 실행 파일이 `/home/ubuntu/claude-usage-tracker/`에 있다고 보고 적었으니, 다르면 unit의 `User`, `ExecStart`, `PATH`를 고친다.
 
 ```bash
 install -Dm755 bin/cut-linux-arm64 ~/claude-usage-tracker/cut-linux-arm64
-sudo install -m644 claude-usage-tracker.service /etc/systemd/system/claude-usage-tracker.service
+sudo install -m644 deploy/claude-usage-tracker.service /etc/systemd/system/claude-usage-tracker.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now claude-usage-tracker
 ```
