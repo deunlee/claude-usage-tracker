@@ -36,6 +36,7 @@ var staticFiles = map[string]staticFile{
 	"/login":       {"login.html", "text/html; charset=utf-8"},
 	"/login.js":    {"login.js", "text/javascript; charset=utf-8"},
 	"/favicon.svg": {"favicon.svg", "image/svg+xml"},
+	"/favicon.png": {"favicon.png", "image/png"},
 }
 
 // 새로고침 요청을 수집 고루틴이 받지 못하고 있으면(수집 중이면) 오래 붙잡지 않고 지금 상태로 답한다.
