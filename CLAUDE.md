@@ -18,7 +18,7 @@
 
 ## 버전
 
-이 프로그램의 버전은 흉내 내는 Claude Code의 버전, 곧 `internal/claude/client.go`의 `CodeVersion`을 그대로 쓴다. 따로 번호를 매기면 어느 Claude Code를 흉내 내는 빌드인지 알 수 없다. `CodeVersion`을 올리면 릴리스 태그도 같은 번호(`v2.1.302`)로 단다.
+이 프로그램의 버전은 흉내 내는 Claude Code의 버전, 곧 `internal/claude/client.go`의 `CodeVersion`을 그대로 쓴다. 따로 번호를 매기면 어느 Claude Code를 흉내 내는 빌드인지 알 수 없다. `CodeVersion`을 올리면 릴리스 태그도 같은 번호(`v2.1.325`)로 단다.
 
 ## 리눅스에서 서비스로 실행
 

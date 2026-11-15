@@ -25,7 +25,7 @@ import (
 )
 
 // 요청 형태를 바이너리에서 확인한 로컬 설치본의 버전. Claude Code를 업데이트하면 여기도 직접 맞춘다.
-const CodeVersion = "2.1.302"
+const CodeVersion = "2.1.325"
 const usageURL = "https://api.anthropic.com/api/oauth/usage"
 
 // Claude Code가 이 호출에 거는 타임아웃.
